@@ -178,6 +178,90 @@ function getTotalStats(
 }
 
 // ==================================================
+// MÁXIMO PORCENTAJE HISTÓRICO
+// ==================================================
+//
+// Busca todas las semanas guardadas del servidor
+// y obtiene el porcentaje más alto conseguido
+// por cada miembro.
+//
+
+function getMaximumHistoricalPercentage(
+  guildId,
+  userId
+) {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `
+      SELECT report_data
+      FROM weekly_history
+      WHERE guild_id = ?
+      `,
+      [
+        guildId,
+      ],
+      (err, rows) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let maximum = null;
+
+        for (const row of rows || []) {
+          if (!row || !row.report_data) {
+            continue;
+          }
+
+          let report;
+
+          try {
+            report =
+              JSON.parse(
+                row.report_data
+              );
+          } catch {
+            continue;
+          }
+
+          const staff =
+            report?.staff || [];
+
+          const member =
+            staff.find(
+              (entry) =>
+                String(entry.user_id) ===
+                String(userId)
+            );
+
+          if (!member) {
+            continue;
+          }
+
+          const progress =
+            Number(member.progress);
+
+          if (
+            !Number.isFinite(progress)
+          ) {
+            continue;
+          }
+
+          if (
+            maximum === null ||
+            progress > maximum
+          ) {
+            maximum = progress;
+          }
+        }
+
+        resolve(maximum);
+      }
+    );
+  });
+}
+
+// ==================================================
 // DÍA LÓGICO
 // ==================================================
 
@@ -1960,7 +2044,7 @@ async function handleProgresoDiario(
 }
 
 // ==================================================
-// RANKINGS
+// RANKINGS ANTERIORES
 // ==================================================
 
 async function getRankingData(
@@ -2017,7 +2101,7 @@ async function getRankingData(
 }
 
 // ==================================================
-// MOSTRAR RANKING
+// MOSTRAR RANKING ANTERIOR
 // ==================================================
 
 async function handleRanking(
@@ -2058,6 +2142,154 @@ async function handleRanking(
       .setDescription(
         lines.join("\n\n")
       )
+      .setTimestamp();
+
+  await interaction.reply({
+    embeds: [embed],
+  });
+}
+
+// ==================================================
+// /RANKING GENERAL
+// ==================================================
+
+async function handleGeneralRanking(
+  interaction
+) {
+  const members =
+    await getEvaluableMembers(
+      interaction.guild
+    );
+
+  if (
+    !members ||
+    members.size === 0
+  ) {
+    await interaction.reply({
+      content:
+        "❌ No hay miembros Staff/Admin con tareas configuradas para mostrar.",
+      ephemeral: true,
+    });
+
+    return;
+  }
+
+  const ranking = [];
+
+  for (const member of members.values()) {
+    const total =
+      await getTotalStats(
+        interaction.guild.id,
+        member.id
+      );
+
+    const maximumPercentage =
+      await getMaximumHistoricalPercentage(
+        interaction.guild.id,
+        member.id
+      );
+
+    ranking.push({
+      member,
+
+      messages: Number(
+        total?.messages || 0
+      ),
+
+      alliances: Number(
+        total?.alliances || 0
+      ),
+
+      affiliations: Number(
+        total?.affiliations || 0
+      ),
+
+      maximumPercentage:
+        maximumPercentage === null
+          ? null
+          : Number(
+              maximumPercentage
+            ),
+    });
+  }
+
+  // ==================================================
+  // ORDEN DEL RANKING
+  // ==================================================
+  //
+  // 1. Mayor porcentaje máximo
+  // 2. Más mensajes totales
+  // 3. Más alianzas totales
+  // 4. Más afiliaciones totales
+  //
+
+  ranking.sort(
+    (a, b) => {
+      const aPercentage =
+        a.maximumPercentage === null
+          ? -1
+          : a.maximumPercentage;
+
+      const bPercentage =
+        b.maximumPercentage === null
+          ? -1
+          : b.maximumPercentage;
+
+      return (
+        bPercentage -
+          aPercentage ||
+
+        b.messages -
+          a.messages ||
+
+        b.alliances -
+          a.alliances ||
+
+        b.affiliations -
+          a.affiliations
+      );
+    }
+  );
+
+  const lines =
+    ranking.map(
+      (entry, index) => {
+        return (
+          `**#${index + 1}**\n` +
+          `**Staff:** ${entry.member}\n` +
+          `**Id:** \`${entry.member.id}\`\n` +
+          `**Mensajes totales:** ${entry.messages.toLocaleString("es-ES")}\n` +
+          `**Alianzas totales:** ${entry.alliances.toLocaleString("es-ES")}\n` +
+          `**Afiliaciones totales:** ${entry.affiliations.toLocaleString("es-ES")}\n` +
+          `**Máximo porcentaje:** ${
+            entry.maximumPercentage === null
+              ? "N/A"
+              : `${entry.maximumPercentage}%`
+          }`
+        );
+      }
+    );
+
+  let description =
+    lines.join("\n\n");
+
+  // Discord permite 4096 caracteres en description.
+  if (description.length > 4000) {
+    description =
+      description.substring(0, 4000) +
+      "\n\n...";
+  }
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle("🏆 Ranking General del Staff")
+      .setDescription(
+        description
+      )
+      .setFooter({
+        text:
+          "Estadísticas acumuladas de todas las semanas guardadas.",
+      })
       .setTimestamp();
 
   await interaction.reply({
@@ -2343,10 +2575,6 @@ async function handleHelp(
         "Guía de comandos disponibles para administrar y consultar el rendimiento del Staff."
       )
 
-      // ==========================================
-      // CONFIGURACIÓN
-      // ==========================================
-
       .addFields({
         name: "⚙️ Configuración",
         value:
@@ -2354,10 +2582,6 @@ async function handleHelp(
           "Configura los roles, tareas, canales y opciones del sistema de Staff.",
         inline: false,
       })
-
-      // ==========================================
-      // PROGRESO
-      // ==========================================
 
       .addFields({
         name: "📊 Progreso",
@@ -2373,15 +2597,11 @@ async function handleHelp(
         inline: false,
       })
 
-      // ==========================================
-      // RANKINGS
-      // ==========================================
-
       .addFields({
         name: "🏆 Rankings",
         value:
           "`/ranking`\n" +
-          "Muestra el ranking general del Staff.\n\n" +
+          "Muestra el ranking general del Staff con estadísticas acumuladas.\n\n" +
 
           "`/top-mensajes`\n" +
           "Muestra el ranking de mensajes.\n\n" +
@@ -2393,10 +2613,6 @@ async function handleHelp(
           "Muestra el ranking de afiliaciones.",
         inline: false,
       })
-
-      // ==========================================
-      // EVALUACIÓN
-      // ==========================================
 
       .addFields({
         name: "📋 Evaluación P-M-D",
@@ -2410,10 +2626,6 @@ async function handleHelp(
         inline: false,
       })
 
-      // ==========================================
-      // HISTORIALES
-      // ==========================================
-
       .addFields({
         name: "🗃️ Historiales",
         value:
@@ -2424,10 +2636,6 @@ async function handleHelp(
           "Consulta un reporte diario guardado.",
         inline: false,
       })
-
-      // ==========================================
-      // STAFF / ADMINS
-      // ==========================================
 
       .addFields({
         name: "👥 Staff y Administradores",
@@ -2440,10 +2648,6 @@ async function handleHelp(
         inline: false,
       })
 
-      // ==========================================
-      // REPORTES
-      // ==========================================
-
       .addFields({
         name: "🧪 Reportes",
         value:
@@ -2451,10 +2655,6 @@ async function handleHelp(
           "Genera y envía inmediatamente un reporte diario de prueba.",
         inline: false,
       })
-
-      // ==========================================
-      // INFORMACIÓN
-      // ==========================================
 
       .addFields({
         name: "ℹ️ Información",
@@ -2818,11 +3018,9 @@ client.on(
         interaction.commandName ===
         "ranking"
       ) {
-        await interaction.reply({
-          content:
-            "📊 El ranking general estará disponible próximamente.",
-          ephemeral: true,
-        });
+        await handleGeneralRanking(
+          interaction
+        );
 
         return;
       }
@@ -2898,11 +3096,6 @@ client.on(
 // ==================================================
 // COMPROBACIÓN AUTOMÁTICA
 // ==================================================
-//
-// Se ejecuta cada minuto para comprobar:
-// - Cambio de semana
-// - Reportes diarios pendientes
-//
 
 setInterval(
   async () => {
