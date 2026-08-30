@@ -1833,12 +1833,23 @@ async function handleProgreso(
     return;
   }
 
-  const stats =
-    await getWeeklyStats(
-      interaction.guild.id,
-      targetUser.id
+  const config =
+    await getGuildConfig(
+      interaction.guild.id
     );
 
+  const resetHour =
+    Number(
+      config?.daily_reset_hour || 0
+    );
+
+  const stats =
+    await getDailyStats(
+      interaction.guild.id,
+      targetUser.id,
+      resetHour
+    );
+  
   const tasks =
     memberData.tasks;
 
