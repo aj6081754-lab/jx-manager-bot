@@ -2328,6 +2328,156 @@ async function handleHistorial(
 }
 
 // ==================================================
+// /HELP
+// ==================================================
+
+async function handleHelp(
+  interaction
+) {
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        "📚 Staff Analytics — Ayuda"
+      )
+      .setDescription(
+        "Guía de comandos disponibles para administrar y consultar el rendimiento del Staff."
+      )
+
+      // ==========================================
+      // CONFIGURACIÓN
+      // ==========================================
+
+      .addFields({
+        name: "⚙️ Configuración",
+        value:
+          "`/config`\n" +
+          "Configura los roles, tareas, canales y opciones del sistema de Staff.",
+        inline: false,
+      })
+
+      // ==========================================
+      // PROGRESO
+      // ==========================================
+
+      .addFields({
+        name: "📊 Progreso",
+        value:
+          "`/progreso [user]`\n" +
+          "Consulta el progreso semanal de un miembro.\n\n" +
+
+          "`/progreso-semanal`\n" +
+          "Muestra el progreso semanal de todo el Staff.\n\n" +
+
+          "`/progreso-diario`\n" +
+          "Muestra el progreso diario de todo el Staff.",
+        inline: false,
+      })
+
+      // ==========================================
+      // RANKINGS
+      // ==========================================
+
+      .addFields({
+        name: "🏆 Rankings",
+        value:
+          "`/ranking`\n" +
+          "Muestra el ranking general del Staff.\n\n" +
+
+          "`/top-mensajes`\n" +
+          "Muestra el ranking de mensajes.\n\n" +
+
+          "`/top-alianzas`\n" +
+          "Muestra el ranking de alianzas.\n\n" +
+
+          "`/top-afiliaciones`\n" +
+          "Muestra el ranking de afiliaciones.",
+        inline: false,
+      })
+
+      // ==========================================
+      // EVALUACIÓN
+      // ==========================================
+
+      .addFields({
+        name: "📋 Evaluación P-M-D",
+        value:
+          "`/p-m-d`\n" +
+          "Evalúa el progreso semanal y clasifica al Staff en SUBIR, MANTENER, BAJAR o NO DISPONIBLE.\n\n" +
+          "Los porcentajes utilizados son:\n" +
+          "💬 Mensajes — 50%\n" +
+          "🤝 Alianzas — 25%\n" +
+          "🔗 Afiliaciones — 25%",
+        inline: false,
+      })
+
+      // ==========================================
+      // HISTORIALES
+      // ==========================================
+
+      .addFields({
+        name: "🗃️ Historiales",
+        value:
+          "`/historial codigo:<código>`\n" +
+          "Consulta un reporte semanal guardado.\n\n" +
+
+          "`/historial-diario codigo:<código>`\n" +
+          "Consulta un reporte diario guardado.",
+        inline: false,
+      })
+
+      // ==========================================
+      // STAFF / ADMINS
+      // ==========================================
+
+      .addFields({
+        name: "👥 Staff y Administradores",
+        value:
+          "`/lista-staff`\n" +
+          "Muestra todos los miembros que tienen un rol Staff configurado.\n\n" +
+
+          "`/lista-admins`\n" +
+          "Muestra todos los miembros que tienen un rol Admin configurado.",
+        inline: false,
+      })
+
+      // ==========================================
+      // REPORTES
+      // ==========================================
+
+      .addFields({
+        name: "🧪 Reportes",
+        value:
+          "`/reporte-diario-test`\n" +
+          "Genera y envía inmediatamente un reporte diario de prueba.",
+        inline: false,
+      })
+
+      // ==========================================
+      // INFORMACIÓN
+      // ==========================================
+
+      .addFields({
+        name: "ℹ️ Información",
+        value:
+          "Los datos se almacenan de forma independiente por servidor.\n" +
+          "El bot puede utilizarse en múltiples servidores y cada servidor mantiene su propia configuración y estadísticas.",
+        inline: false,
+      })
+
+      .setFooter({
+        text:
+          "Staff Analytics • Usa /config para comenzar la configuración.",
+      })
+
+      .setTimestamp();
+
+  await interaction.reply({
+    embeds: [embed],
+    ephemeral: true,
+  });
+}
+
+// ==================================================
 // INTERACCIONES
 // ==================================================
 
@@ -2335,6 +2485,7 @@ client.on(
   Events.InteractionCreate,
   async (interaction) => {
     try {
+
       // ============================================
       // CONFIG
       // ============================================
@@ -2386,6 +2537,21 @@ client.on(
       if (
         !interaction.isChatInputCommand()
       ) {
+        return;
+      }
+
+      // ============================================
+      // /HELP
+      // ============================================
+
+      if (
+        interaction.commandName ===
+        "help"
+      ) {
+        await handleHelp(
+          interaction
+        );
+
         return;
       }
 
@@ -2549,23 +2715,6 @@ client.on(
       }
 
       // ============================================
-      // HELP
-      // ============================================
-
-      if (
-        interaction.commandName ===
-        "help"
-      ) {
-        await interaction.reply({
-          content:
-            "📚 El sistema de ayuda estará disponible próximamente.",
-          ephemeral: true,
-        });
-
-        return;
-      }
-
-      // ============================================
       // LISTA STAFF
       // ============================================
 
@@ -2677,34 +2826,44 @@ client.on(
 
         return;
       }
+
     } catch (error) {
+
       console.error(
         "❌ Error en interacción:",
         error
       );
 
       try {
+
         if (
           interaction.replied ||
           interaction.deferred
         ) {
+
           await interaction.followUp({
             content:
               "❌ Ocurrió un error al procesar esta acción.",
             ephemeral: true,
           });
+
         } else {
+
           await interaction.reply({
             content:
               "❌ Ocurrió un error al procesar esta acción.",
             ephemeral: true,
           });
+
         }
+
       } catch (replyError) {
+
         console.error(
           "❌ No se pudo responder al usuario:",
           replyError
         );
+
       }
     }
   }
@@ -2718,16 +2877,20 @@ client.on(
   Events.MessageCreate,
   async (message) => {
     try {
+
       console.log(
         `📨 Mensaje detectado: ${message.author.tag} en #${message.channel.name}`
       );
 
       await processMessage(message);
+
     } catch (error) {
+
       console.error(
         "❌ Error procesando mensaje:",
         error
       );
+
     }
   }
 );
@@ -2743,27 +2906,37 @@ client.on(
 
 setInterval(
   async () => {
+
     if (!client.isReady()) {
       return;
     }
 
     try {
+
       await checkWeeklyHistory(client);
+
     } catch (error) {
+
       console.error(
         "❌ Error en comprobación semanal:",
         error
       );
+
     }
 
     try {
+
       await checkDailyReports(client);
+
     } catch (error) {
+
       console.error(
         "❌ Error en comprobación diaria:",
         error
       );
+
     }
+
   },
   60 * 1000
 );
@@ -2773,9 +2946,11 @@ setInterval(
 // ==================================================
 
 if (!process.env.DISCORD_TOKEN) {
+
   console.error(
     "❌ DISCORD_TOKEN no está configurado."
   );
+
   process.exit(1);
 }
 

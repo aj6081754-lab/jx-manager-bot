@@ -127,6 +127,24 @@ const commands = [
     ),
 
   // ===================================================
+  // HISTORIAL DIARIO
+  // ===================================================
+
+  new SlashCommandBuilder()
+    .setName("historial-diario")
+    .setDescription(
+      "Consulta un reporte diario guardado"
+    )
+    .addStringOption(option =>
+      option
+        .setName("codigo")
+        .setDescription(
+          "Código del historial, por ejemplo D-ABC123"
+        )
+        .setRequired(true)
+    ),
+
+  // ===================================================
   // TOP ALIANZAS
   // ===================================================
 
