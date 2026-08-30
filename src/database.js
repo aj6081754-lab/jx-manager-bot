@@ -1,6 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database("./staffbot.db", (err) => {
+const db = new sqlite3.Database("./data/staffbot.db", (err) => {
   if (err) {
     console.error(
       "❌ Error al abrir la base de datos:",
