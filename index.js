@@ -3164,3 +3164,81 @@ if (!process.env.DISCORD_TOKEN) {
 client.login(
   process.env.DISCORD_TOKEN
 );
+
+// ==================================================
+// API DE ESTADÍSTICAS PARA LA WEB
+// ==================================================
+
+const statsServer = http.createServer(
+  (req, res) => {
+
+    if (req.url !== "/stats") {
+      res.writeHead(404, {
+        "Content-Type": "application/json",
+      });
+
+      res.end(
+        JSON.stringify({
+          error: "Not found",
+        })
+      );
+
+      return;
+    }
+
+    const apiKey =
+      req.headers["x-api-key"];
+
+    if (
+      !STATS_API_KEY ||
+      apiKey !== STATS_API_KEY
+    ) {
+      res.writeHead(401, {
+        "Content-Type": "application/json",
+      });
+
+      res.end(
+        JSON.stringify({
+          error: "Unauthorized",
+        })
+      );
+
+      return;
+    }
+
+    let members = 0;
+
+    for (
+      const guild of client.guilds.cache.values()
+    ) {
+      members += guild.memberCount || 0;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    });
+
+    res.end(
+      JSON.stringify({
+        servers: client.guilds.cache.size,
+        members,
+        online: client.isReady(),
+      })
+    );
+  }
+);
+
+// Railway proporciona PORT automáticamente
+const PORT =
+  process.env.PORT || 3000;
+
+statsServer.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+    console.log(
+      `🌐 API de estadísticas funcionando en el puerto ${PORT}`
+    );
+  }
+);
