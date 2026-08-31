@@ -99,6 +99,95 @@ client.once(
 );
 
 // ==================================================
+// BOT AÑADIDO A UN SERVIDOR
+// ==================================================
+
+client.on(
+  Events.GuildCreate,
+  async (guild) => {
+    try {
+      console.log(
+        `➕ Bot añadido a: ${guild.name} (${guild.id})`
+      );
+
+      // Buscar canales donde el bot pueda enviar mensajes
+      const availableChannels =
+        guild.channels.cache.filter(
+          (channel) =>
+            channel.isTextBased() &&
+            channel.isGuildText() &&
+            channel
+              .permissionsFor(guild.members.me)
+              ?.has("SendMessages")
+        );
+
+      if (availableChannels.size === 0) {
+        console.log(
+          `⚠️ No hay ningún canal disponible para enviar el mensaje en ${guild.name}.`
+        );
+
+        return;
+      }
+
+      // Convertir los canales disponibles en array
+      const channels =
+        Array.from(
+          availableChannels.values()
+        );
+
+      // Elegir un canal aleatorio
+      const channel =
+        channels[
+          Math.floor(
+            Math.random() * channels.length
+          )
+        ];
+
+      const embed =
+        new EmbedBuilder()
+          .setTitle(
+            "Gracias por añadir Staff Analytics !!"
+          )
+          .setDescription(
+            "Gracias por añadir a Staff Analytics, para comenzar usa `/config` para configurar los roles de staff/admin, tareas, y otras opciones del sistema.\n\n" +
+            "Si necesitas ayuda únete al servidor de soporte con el botón de abajo.\n\n" +
+            "**Comandos Principales**\n" +
+            "Usa `/help` para saber los comandos disponibles.\n\n" +
+            "Configura las funciones principales con `/config`."
+          )
+          .setTimestamp();
+
+      await channel.send({
+        embeds: [embed],
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 5,
+                label: "Servidor de soporte",
+                url: "https://discord.gg/Uc2Rfmmybk",
+              },
+            ],
+          },
+        ],
+      });
+
+      console.log(
+        `📤 Mensaje de bienvenida enviado en #${channel.name} de ${guild.name}`
+      );
+
+    } catch (error) {
+      console.error(
+        `❌ Error enviando mensaje de bienvenida en ${guild.name}:`,
+        error
+      );
+    }
+  }
+);
+
+// ==================================================
 // ESTADÍSTICAS SEMANALES
 // ==================================================
 
