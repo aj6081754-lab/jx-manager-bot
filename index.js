@@ -87,14 +87,7 @@ client.once(
       );
     }
 
-    try {
-      await checkDailyReports(readyClient);
-    } catch (error) {
-      console.error(
-        "❌ Error comprobando reportes diarios:",
-        error
-      );
-    }
+  
   }
 );
 
