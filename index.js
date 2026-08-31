@@ -5,6 +5,8 @@ const {
   EmbedBuilder,
 } = require("discord.js");
 
+const http = require("http");
+
 const {
   handleConfigInteraction,
 } = require("./src/commands/config");
