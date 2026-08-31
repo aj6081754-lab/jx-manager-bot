@@ -6,6 +6,7 @@ const {
 } = require("discord.js");
 
 const http = require("http");
+const STATS_API_KEY = process.env.STATS_API_KEY;
 
 const {
   handleConfigInteraction,
