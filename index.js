@@ -1597,7 +1597,57 @@ async function saveAndPublishDailyReport(
 }
 
 // ==================================================
-// COMPROBAR REPORTES DIARIOS
+// CONTROL DE REPORTES DIARIOS
+// ==================================================
+
+const lastDailyReportDay = new Map();
+
+// ==================================================
+// INICIALIZAR CONTROL DIARIO
+// ==================================================
+
+async function initializeDailyReportTracking(
+  readyClient
+) {
+  for (
+    const guild of readyClient.guilds.cache.values()
+  ) {
+    try {
+      const config =
+        await getGuildConfig(guild.id);
+
+      const resetHour =
+        Number(
+          config?.daily_reset_hour || 0
+        );
+
+      const currentDay =
+        getDayKey(
+          new Date(),
+          resetHour
+        );
+
+      // Guardamos el día actual sin generar ningún reporte.
+      lastDailyReportDay.set(
+        guild.id,
+        currentDay
+      );
+
+      console.log(
+        `📅 Control diario iniciado: ${guild.name} | ${currentDay}`
+      );
+
+    } catch (error) {
+      console.error(
+        `❌ Error inicializando control diario en ${guild.name}:`,
+        error
+      );
+    }
+  }
+}
+
+// ==================================================
+// COMPROBAR CAMBIO DE DÍA
 // ==================================================
 
 async function checkDailyReports(
@@ -1615,18 +1665,48 @@ async function checkDailyReports(
           config?.daily_reset_hour || 0
         );
 
-      const previousDate =
-        new Date();
-
-      previousDate.setDate(
-        previousDate.getDate() - 1
-      );
-
-      const previousDay =
+      const currentDay =
         getDayKey(
-          previousDate,
+          new Date(),
           resetHour
         );
+
+      const lastDay =
+        lastDailyReportDay.get(
+          guild.id
+        );
+
+      // Primera comprobación después de iniciar.
+      // No genera reporte.
+      if (!lastDay) {
+        lastDailyReportDay.set(
+          guild.id,
+          currentDay
+        );
+
+        continue;
+      }
+
+      // Todavía estamos en el mismo día lógico.
+      if (
+        lastDay === currentDay
+      ) {
+        continue;
+      }
+
+      // Cambió el día lógico.
+      console.log(
+        `🔄 Nuevo día detectado en ${guild.name}: ${currentDay}`
+      );
+
+      // El día que acaba de terminar.
+      const previousDay =
+        lastDay;
+
+      lastDailyReportDay.set(
+        guild.id,
+        currentDay
+      );
 
       const existing =
         await getDailyHistoryByDay(
@@ -1634,12 +1714,17 @@ async function checkDailyReports(
           previousDay
         );
 
+      // Si ya existe, no hacemos nada.
       if (existing) {
+        console.log(
+          `ℹ️ El reporte diario ${previousDay} ya existe en ${guild.name}.`
+        );
+
         continue;
       }
 
       console.log(
-        `📅 Falta el reporte diario de ${guild.name}: ${previousDay}`
+        `📊 Generando reporte diario: ${guild.name} | ${previousDay}`
       );
 
       await saveAndPublishDailyReport(
@@ -1648,8 +1733,9 @@ async function checkDailyReports(
       );
 
       console.log(
-        `✅ Día cerrado automáticamente: ${guild.name} | ${previousDay}`
+        `✅ Reporte diario generado automáticamente: ${guild.name} | ${previousDay}`
       );
+
     } catch (error) {
       console.error(
         `❌ Error comprobando reporte diario en ${guild.name}:`,
