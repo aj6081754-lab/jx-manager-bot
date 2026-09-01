@@ -3370,7 +3370,7 @@ client.login(
 // ==================================================
 
 const statsServer = http.createServer(
-  (req, res) => {
+  async (req, res) => {
 
     if (req.url !== "/stats") {
       res.writeHead(404, {
@@ -3419,13 +3419,18 @@ const statsServer = http.createServer(
       "Access-Control-Allow-Origin": "*",
     });
 
-    res.end(
-      JSON.stringify({
-        servers: client.guilds.cache.size,
-        members,
-        online: client.isReady(),
-      })
-    );
+    const globalStats = await getGlobalStats();
+
+res.end(
+  JSON.stringify({
+    servers: client.guilds.cache.size,
+    members,
+    alliances: Number(globalStats.alliances || 0),
+    affiliations: Number(globalStats.affiliations || 0),
+    messages: Number(globalStats.messages || 0),
+    online: client.isReady(),
+  })
+);
   }
 );
 
