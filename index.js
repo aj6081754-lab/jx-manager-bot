@@ -263,6 +263,38 @@ function getTotalStats(
 }
 
 // ==================================================
+// ESTADÍSTICAS GLOBALES PARA LA WEB
+// ==================================================
+
+function getGlobalStats() {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `
+      SELECT
+        COALESCE(SUM(messages), 0) AS messages,
+        COALESCE(SUM(alliances), 0) AS alliances,
+        COALESCE(SUM(affiliations), 0) AS affiliations
+      FROM weekly_stats
+      `,
+      (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(
+          row || {
+            messages: 0,
+            alliances: 0,
+            affiliations: 0,
+          }
+        );
+      }
+    );
+  });
+}
+
+// ==================================================
 // MÁXIMO PORCENTAJE HISTÓRICO
 // ==================================================
 //
